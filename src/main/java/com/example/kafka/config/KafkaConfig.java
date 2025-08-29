@@ -2,7 +2,11 @@ package com.example.kafka.config;
 
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.apache.kafka.streams.KeyValue;
+import org.apache.kafka.streams.StreamsBuilder;
+import org.apache.kafka.streams.kstream.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -12,6 +16,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.support.serializer.JsonSerializer;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -41,5 +46,34 @@ public class KafkaConfig {
     @Bean
     public KafkaTemplate<String, Object> kafkaTemplate() {
         return new KafkaTemplate<>(producerFactory());
+    }
+
+    @Bean
+    public KStream<String, String> kStream(StreamsBuilder builder) {
+
+        KStream<String, String> stream = builder.stream("input-topic",
+                Consumed.with(Serdes.String(), Serdes.String()));
+
+        stream
+            .groupByKey()
+            .windowedBy(TimeWindows.ofSizeWithNoGrace(Duration.ofSeconds(5)))
+            .aggregate(
+                    () -> "",   // 초기값
+                    (key, value, aggregate) -> aggregate.isEmpty() ? value : aggregate + "," + value,
+                    Materialized.with(Serdes.String(), Serdes.String())
+            )
+            .toStream()
+            .map((windowedKey, aggregatedValue) -> {
+                // window 정보 확인 가능
+                String newKey = windowedKey.key();
+                String newValue = String.format("Window[%d-%d]: %s",
+                        windowedKey.window().start(),
+                        windowedKey.window().end(),
+                        aggregatedValue);
+                return KeyValue.pair(newKey, newValue);
+            })
+            .to("output-topic", Produced.with(Serdes.String(), Serdes.String()));
+
+        return stream;
     }
 }
