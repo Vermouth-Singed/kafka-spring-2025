@@ -6,6 +6,8 @@ import com.example.kafka.repository.BoardRepository;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
 @Component
 public class BoardConsumer {
     private final BoardRepository boardRepository;
@@ -14,14 +16,23 @@ public class BoardConsumer {
         this.boardRepository = boardRepository;
     }
 
-    @KafkaListener(topics = "${spring.kafka.topic}", groupId = "${spring.kafka.consumer.group-id}")
+    @KafkaListener(topics = "${spring.kafka.topic1}", groupId = "${spring.kafka.topic1}")
     public void consumeBoardEvent(BoardRequest req) {
         Board board = Board
-            .builder()
-            .title(req.getTitle())
-            .content(req.getContent())
-            .build();
+                .builder()
+                .title(req.getTitle())
+                .content(req.getContent())
+                .build();
 
         boardRepository.save(board);
+    }
+
+    @KafkaListener(topics = "${spring.kafka.topic3}", groupId = "${spring.kafka.topic3}")
+    public void consumeBoardCountEvent(List<BoardRequest> list) {
+        if (list == null) {
+            System.out.println("list is null");
+        } else {
+            list.forEach(req -> System.out.println(req.getId() + ">>>>>>" + list.size()));
+        }
     }
 }

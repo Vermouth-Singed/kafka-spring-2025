@@ -25,7 +25,9 @@ spring:
 
   kafka:
     bootstrap-servers: localhost:29092
-    topic: board-topic
+    topic1: board-topic
+    topic2: count-input-topic
+    topic3: count-output-topic
     consumer:
       group-id: test-group
       auto-offset-reset: earliest

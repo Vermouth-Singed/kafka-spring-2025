@@ -15,7 +15,13 @@ public class BoardService {
     }
 
     public BoardResponse createBoard(BoardRequest request) {
-        boardProducer.sendBoardEvent(KafkaType.CREATE.name(), request);
+        boardProducer.sendBoardEvent(KafkaType.CREATE, request);
+
+        return convertToResponse(request);
+    }
+
+    public BoardResponse updateBoardCount(BoardRequest request) {
+        boardProducer.sendBoardEvent(KafkaType.COUNT, request);
 
         return convertToResponse(request);
     }
